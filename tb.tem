@@ -104,7 +104,7 @@ for this book of puzzles: <span class="code"></span></h5>
 
 SOLUTION
 
-<script defer src="encdict.js"></script>
+<script defer src="enctrie.js"></script>
 <script>
 "use strict"
 
@@ -112,7 +112,6 @@ const NumPuzzles = IDNUM;
 
 RANDSFC32
 BOGGLE
-ENCTRIE
 TRIE
 
 function getUrlVars() {
@@ -168,7 +167,6 @@ function populateDOM(idx, sol) {
 function callbackSolve(puzzle) {
     //let start = Date.now();  // profiling
     let solve = mk_solver();
-    let throwaway = solve.go();  // don't need the JSON string anymore
 
     for (let idx = 1; idx <= NumPuzzles; ++idx) {
         console.log("callbackSolve", idx, puzzle[idx]);

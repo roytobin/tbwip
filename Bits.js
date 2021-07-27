@@ -195,7 +195,7 @@ BitWriter.prototype =
     },
 
     /**
-        Returns the bits as a human readable binary string for debugging
+        Returns the bits as a human readable binary string for debug
      */
     getDebugString: function(group) {
         var chars = [];
@@ -733,8 +733,10 @@ FrozenTrie.prototype = {
     getChildByLetter: function (parent, letter) {
         let child;
 
+	//console.log("getChildByLetter 3", letter, parent.getChildCount());
         for (var idx=0; idx < parent.getChildCount(); ++idx) {
 	    child = parent.getChild(idx);
+	    //console.log("getChildByLetter 5", child.letter);
 	    if (child.letter === letter) {
 	        return child;
 	    }
@@ -784,51 +786,7 @@ FrozenTrie.prototype = {
     }
 };// FrozenTrie prototype
 
-/************************************************************************
-  DEMONSTATION APPLICATION FUNCTIONS
-  ***********************************************************************/
-/**
-  Load a dictionary asynchronously.
-  */
-function loadDictionary() 
-{
-    var xmlHttpReq;
-    try {
-       xmlHttpReq = new XMLHttpRequest();
-    } catch ( trymicrosoft ) {
-        try {
-            xmlHttpReq = new ActiveXObject("Msxml2.XMLHTTP");
-        } catch(othermicrosoft) {
-            try {
-                xmlHttpReq = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch(failed) {
-                xmlHttpReq = null;
-            }
-        }
-    }
-
-    strUrl = "ospd3.txt";
-
-    xmlHttpReq.open("GET", "ospd3.txt", true);
-    xmlHttpReq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xmlHttpReq.onreadystatechange = function() {
-        if (xmlHttpReq.readyState === 4) {
-            if (xmlHttpReq.status === 200 ) {
-                document.getElementById("input").value =
-                    xmlHttpReq.responseText;
-            } else if ( xmlHttpReq.message ) {
-                alert( xmlHttpReq.message );
-            } else {
-                alert( "Network error. Check internet connection" );
-            }
-        }
-    };
-
-    xmlHttpReq.send("");
-}
-
 function getWords() {
-    if (TR_STANDALONE) {
         let wordArr;
         //return ["hat", "peace", "hats"];
         //return ["hats"];
@@ -837,8 +795,6 @@ function getWords() {
 	wordArr = readFile("../boggle/everyday").split('\n');
 	//wordArr.length = 500;
 	return wordArr;
-    }
-    return document.getElementById("input").value.split(/\s+/);
 }
 
 /**
@@ -887,15 +843,7 @@ function go()
 
     if (harvest) console.log(`@ nodeCount ${trie.getNodeCount()}`);
 
-    if (TR_STANDALONE) {
-        return output;
-    }
-
-    document.getElementById("output").value = output;
-
-    document.getElementById("encodeStatus").innerHTML = 
-        "Encoded " + document.getElementById("input").value.length + 
-        " bytes to " + output.length + " bytes.";
+    return output;
 }// go()
 
 
@@ -916,7 +864,7 @@ function searchTrie(so, w)
         var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
         var word = w || document.getElementById("lookup").value;
 
-	console.log("searchTrie 5", word);
+	console.log("search Trie 5", word);  // debugging
 
         if ( ftrie.lookup( word ) ) {
             status = '"' + word + '" is in the dictionary.';
@@ -935,16 +883,20 @@ function searchGame(so) {
     //try {
 	//let json = JSON.parse(so);  // Used to be: eval(`(${so})`);
 
-    console.log("searchGame 3");
-
 	//console.log("searchGame 5", json.nodeCount);  // debugging
 
         var ftrie = new FrozenTrie( encTrie, encDir, nodeCount);
         //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
 
 	console.log("searchGame 7 dir len");
+	if (0) {
+	    let pos = 0;
+	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
+	}
+	else {
 	for (let pos = 0; pos < 16; ++pos) {
 	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
+	}
 	}
 	console.log("searchGame 9");  
 	return ftrie.getSearchResults();
@@ -989,7 +941,7 @@ if (TR_STANDALONE) {
 
     harvest = 0;
     let solve = mk_solver();
-    let jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
+    //let jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
   if (0) {
     if (jstr.length < 800) {
 	console.log(jstr);   // display the encoded (base64) trie with its directory
@@ -1008,7 +960,7 @@ if (1) {
 	console.log ( [res[1], res[3], res[5], res[7]].join("\n"));
 
 	start = Date.now();
-	let r = solve.searchGame(jstr);
+	let r = solve.searchGame();
 	stop = Date.now();
 
 	//console.log(r.length, "words found.  And ",Memoization.length," memoization");
