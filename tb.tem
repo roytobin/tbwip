@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title> Puzzle Book for Easy Boggle Solitaire </title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest"  xxhref="site.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" xxhref="apple-touch-icon.png">
+
+<!-- https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html -->
+<meta name="apple-mobile-web-app-title" content="Puzzle Book for Boggle Solitaire">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="keywords"    content="boggle, solitaire, puzzle, JavaScript">
+<meta name="description" content="Find words in a grid of letters">
+<script>
+window.boggleVersion = '0.1';
+</script>
+<style>
+:root {
+    --varOne: 10;
+}
+.a { transform: rotate(0deg); }
+.b { transform: rotate(90deg); }
+.c { transform: rotate(90deg); }
+.d { transform: rotate(270deg); }
+.e { transform: rotate(90deg); }
+.f { transform: rotate(180deg); }
+.g { transform: rotate(180deg); }
+.h { transform: rotate(90deg); }
+.i { transform: rotate(180deg); }
+.j { transform: rotate(0deg); }
+.k { transform: rotate(180deg); }
+.l { transform: rotate(180deg); }
+.m { transform: rotate(180deg); }
+.n { transform: rotate(90deg); }
+.o { transform: rotate(270deg); }
+.p { transform: rotate(0deg); }
+.line {
+    font-weight: 100;
+}
+.solution {
+    font-size: 80%;
+}
+.letsp {
+    font-size: 75%;
+    letter-spacing: 1.5vw;
+}
+.qu {
+    font-size: 95%;
+    letter-spacing: -2px;
+}
+.board {
+    margin: auto;
+    color: blue;
+    font-weight: bold;
+    width: 25%;  /* beware: render in print preview shifts to left */
+    border: 1px solid black
+    padding: 10px;
+    xxfont-size: 2.5vw;
+    font-size: 250%;
+    letter-spacing: 2.6vw;
+}
+.grid {
+    margin-left: auto;
+    margin-right: auto;
+    margin: auto;
+    width: 50%;
+    display: grid;
+    xxgrid-template-columns: 3.8vw 3.8vw 3.8vw 3.8vw;
+    grid-template-columns: 4.8vw 4.8vw 4.8vw 4.8vw;
+}
+.item {
+    color: blue;
+    font-weight: bold;
+    xxborder: 1px solid green;
+    font-family: monospace;
+    font-size: 250%;
+    text-align: center;
+}
+.answer {
+    line-height: 180%;
+    color: gray;
+}
+.pagebreak {
+    page-break-after: always;
+}
+</style>
+</head>
+
+<body onload="bodyLoaded()">
+<!--[if IE]>
+  <h1> Internet Explorer is not supported </h1>
+<![endif]-->
+<noscript><h1> JavaScript is not enabled </h1></noscript>
+
+PAGES
+
+<h4> Solution page for Easy Boggle Solitaire </h4>
+<h5>https://roytobin.github.io/ebs/ The five letter book code
+for this book of puzzles: <span class="code"></span></h5>
+
+SOLUTION
+
+<script defer src="encdict.js"></script>
+<script>
+"use strict"
+
+const NumPuzzles = IDNUM;
+
+RANDSFC32
+BOGGLE
+ENCTRIE
+TRIE
+
+function getUrlVars() {
+    var vars = {};
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+        vars[key] = value;
+    });
+    return vars;
+}
+function checkCode() {
+    let code = getUrlVars()["code"];
+    if ( undefined === code ) {
+	window.location.href = "index.html";
+    }
+    return code;
+}
+
+function populateCode(code) {
+    for (let elem of document.querySelectorAll(".code")) {
+        elem.innerHTML = code;
+    }
+}
+function populateGrid(idx, puz) {
+    let quReplacement = '<span class="qu">Q</span><span class="letsp">u</span>';
+    let res = puz.split(/(\w{4})/);
+    let elem = document.getElementById(`grid${idx}`);
+
+    res[1] = res[1].replace('Q', quReplacement);
+    res[3] = res[3].replace('Q', quReplacement);
+    res[5] = res[5].replace('Q', quReplacement);
+    res[7] = res[7].replace('Q', quReplacement);
+    elem.innerHTML = [res[1], res[3], res[5], res[7]].join("\n");
+}
+function populateDOM(idx, sol) {
+    let elem, found;
+
+    found = sol.length;
+    for (elem of document.querySelectorAll(`.found${idx}`)) {
+	elem.innerHTML = found.toString();
+    }
+
+    let p65 = Math.round(0.65 * found);
+    let p70 = Math.round(0.70 * found);
+    let p75 = Math.round(0.75 * found);
+    let p80 = Math.round(0.80 * found);
+    let p85 = Math.round(0.85 * found);
+    elem = document.getElementById(`percent${idx}`);
+    elem.innerHTML = `&emsp;65%=${p65} &emsp;70%=${p70} <b>&emsp;75%=${p75}</b> &emsp;80%=${p80}  &emsp;85%=${p85}`;
+    
+    elem = document.getElementById(`solution${idx}`);
+    elem.innerHTML = sol.join(' ').toLowerCase();
+}
+function callbackSolve(puzzle) {
+    //let start = Date.now();  // profiling
+    let solve = mk_solver();
+    let throwaway = solve.go();  // don't need the JSON string anymore
+
+    for (let idx = 1; idx <= NumPuzzles; ++idx) {
+        console.log("callbackSolve", idx, puzzle[idx]);
+        solve.setGame(puzzle[idx].toLowerCase());
+	populateDOM(idx, solve.searchGame());
+    }
+    //let stop = Date.now();	// profiling
+    //console.log("callbackSolve 9 ", stop - start);	// profiling
+}
+function bodyLoaded() {
+    //let code = checkCode();
+    //if ( undefined === code )
+     //   return;
+     let code="peace";
+    populateCode(code);
+
+    // mk_prng() returns a pseudo random number generator (RNG) function value
+    //
+    let myrand = mk_prng(code);
+
+    let mygen = boggle(myrand);  // boggle() returns a game-generating function value
+
+    let puzzle = [];
+    for (let idx = 1; idx <= NumPuzzles; ++idx) {
+        puzzle[idx] = mygen();
+	populateGrid(idx, puzzle[idx]);
+    }
+
+    // Relenquish back to render engine to update HTML page promptly now that the puzzle
+    // grids are populated.  Do this before the more involved computation of
+    // decompressing the dictionary and solving the puzzles.
+    //
+    setTimeout(callbackSolve, 1, puzzle);
+}
+</script>
+</body>
+</html>

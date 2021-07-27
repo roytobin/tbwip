@@ -1,0 +1,73 @@
+#! /usr/bin/perl -w
+
+$NumPuzzles = 7;
+
+sub include_pages {
+    my ($filename) = @_;
+    local $/;
+
+    open(PUZ, $filename) || die "Can't open $filename: $!";
+    $page = <PUZ>;  # slurp
+    close PUZ;
+
+    for (1..$NumPuzzles) {
+        $thispage = $page;
+
+	# Perform various substitutions on $page
+	#
+        $thispage =~ s/IDPUZZLE/$_/g;
+	$thispage =~ s/IDGRID/grid$_/g;
+	$thispage =~ s/IDFOUND/found$_/g;
+	$thispage =~ s/IDPERCENT/percent$_/g;
+	$thispage =~ s/IDSOLUTION/solution$_/g;
+	$thispage =~ s/IDNUM/$NumPuzzles/g;
+	print $thispage;
+    }
+}
+
+sub include_javascript {
+    my ($filename, $clean) = @_;
+
+    # print "include_javascript $filename\n";
+    open(F, "$filename") || die;
+    while (<F>) {
+        next if /load.*enctrie.js/;	# remove unit testing load
+        next if /debugging/;   # remove instrumentation
+        if ($clean or /BEGIN/../END/) {
+	    s/_STANDALONE = .*/_STANDALONE = 0;/;
+	    print;
+	}
+    }
+    close F;
+}
+
+while (<>) {
+    s/IDNUM/$NumPuzzles/g;
+    if (/PAGES/) {
+	include_pages("../ebswip/puzzle.tem");
+    }
+    elsif (/SOLUTION/) {
+        include_pages("../ebswip/solution.tem");
+    }
+    elsif (/RANDSFC32/) {
+        include_javascript("../ebswip/rand-sfc32.js");
+    }
+    elsif (/BOGGLE/) {
+        include_javascript("../ebswip/boggle.js");
+    }
+    elsif (/^ENCTRIE/) {
+        include_javascript("enctrie.js", 1);
+    }
+    elsif (/^TRIE/) {
+        include_javascript("Bits.js", 0);
+    }
+    elsif (/SOLVER/) {
+        include_javascript("solver.js");
+    }
+    elsif (/HIST/) {
+        include_javascript("../ebswip/hist.js");
+    }
+    else {
+        print;
+    }
+}
