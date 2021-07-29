@@ -491,6 +491,8 @@ function boggle(myrand) { // argument 'myrand' must be a PRNG function in interv
     }
 }
 // END
+//ENxxCTRIE
+//DExxCIMAL
 // BEGIN
 let TR_STANDALONE = 0;
 let harvest = 0;
@@ -1353,7 +1355,6 @@ function searchTrie(so, w)
     document.getElementById("status").innerHTML = status;
 }
 function searchGame(so) {
-    console.log("searchGame 0", encTrie.length, nodeCount);
     //try {
 	//let json = JSON.parse(so);  // Used to be: eval(`(${so})`);
 
@@ -1361,7 +1362,6 @@ function searchGame(so) {
         var ftrie = new FrozenTrie( encTrie, encDir, nodeCount);
         //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
 
-	console.log("searchGame 7 dir len");
 	if (0) {
 	    let pos = 0;
 	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
@@ -1371,7 +1371,6 @@ function searchGame(so) {
 	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
 	}
 	}
-	console.log("searchGame 9");  
 	return ftrie.getSearchResults();
     //} catch (e) { return ["Error. searchGame() Have you encoded the dictionary yet?"]; }
 }
@@ -1434,7 +1433,7 @@ function callbackSolve(puzzle) {
     let solve = mk_solver();
 
     for (let idx = 1; idx <= NumPuzzles; ++idx) {
-        console.log("callbackSolve", idx, puzzle[idx]);
+        //console.log("callbackSolve", idx, puzzle[idx]);  // debugging
         solve.setGame(puzzle[idx].toLowerCase());
 	populateDOM(idx, solve.searchGame());
     }
@@ -1442,6 +1441,22 @@ function callbackSolve(puzzle) {
     //console.log("callbackSolve 9 ", stop - start);	// profiling
 }
 function bodyLoaded() {
+
+function sumstr(s, verbose) {
+    let acc = 0;
+    for (let idx=0; idx < s.length; ++idx) {
+	let c = s.charCodeAt(idx);
+	acc += c;
+	if (verbose) console.log(`${idx} ${c}`);
+    }
+    return acc;
+}
+
+    let s1 = "a b";
+    let s2 = `a b`;
+
+    console.log("bodyLoaded 0", encTrie.length, encDir.length, s1.length, s2.length);
+    console.log("bodyLoaded 1", sumstr(encTrie, 0), sumstr(encDir, 0), sumstr(s1,1), sumstr(s2,2));
     //let code = checkCode();
     //if ( undefined === code )
      //   return;

@@ -879,7 +879,7 @@ function searchTrie(so, w)
     document.getElementById("status").innerHTML = status;
 }
 function searchGame(so) {
-    console.log("searchGame 0", encTrie.length, nodeCount);
+    console.log("searchGame 0", encTrie.length, nodeCount);  // debugging
     //try {
 	//let json = JSON.parse(so);  // Used to be: eval(`(${so})`);
 
@@ -888,7 +888,7 @@ function searchGame(so) {
         var ftrie = new FrozenTrie( encTrie, encDir, nodeCount);
         //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
 
-	console.log("searchGame 7 dir len");
+	console.log("searchGame 7 dir len");  // debugging
 	if (0) {
 	    let pos = 0;
 	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
@@ -898,7 +898,7 @@ function searchGame(so) {
 	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
 	}
 	}
-	console.log("searchGame 9");  
+	console.log("searchGame 9");    // debugging
 	return ftrie.getSearchResults();
     //} catch (e) { return ["Error. searchGame() Have you encoded the dictionary yet?"]; }
 }
@@ -939,7 +939,7 @@ if (TR_STANDALONE) {
     ];
     puzzle.length = 2;
 
-    harvest = 0;
+    harvest = 1;
     let solve = mk_solver();
     //let jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
   if (0) {

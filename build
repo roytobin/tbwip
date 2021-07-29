@@ -2,6 +2,16 @@
 
 $NumPuzzles = 7;
 
+sub include_raw {
+    my ($filename) = @_;
+    local $/;
+
+    open(RAW, $filename) || die "Can't open $filename: $!";
+    $_ = <RAW>;  # slurp
+    close RAW;
+    print;
+}
+
 sub include_pages {
     my ($filename) = @_;
     local $/;
@@ -55,8 +65,11 @@ while (<>) {
     elsif (/BOGGLE/) {
         include_javascript("../ebswip/boggle.js");
     }
-    elsif (/^ENCTRIE/) {
-        include_javascript("enctrie.js", 1);
+    elsif (/ENCTRIE/) {
+        include_raw("enctrie.js");
+    }
+    elsif (/DECIMAL/) {
+        include_raw("decimal.js");
     }
     elsif (/^TRIE/) {
         include_javascript("Bits.js", 0);
