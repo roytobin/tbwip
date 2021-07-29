@@ -941,7 +941,7 @@ if (TR_STANDALONE) {
 
     harvest = 1;
     let solve = mk_solver();
-    //let jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
+    let jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
   if (0) {
     if (jstr.length < 800) {
 	console.log(jstr);   // display the encoded (base64) trie with its directory
