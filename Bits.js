@@ -68,7 +68,7 @@ Game = "eyleseeaovtiitqg";
 Game = "twstnksijeeltswz";
 let debugString = "";
 let callsToSelect = 0;	// profiling
-let hist = [];
+//let hist = [];  // profiling
 let Memoization = [];
 load("enctrie.js");
 var BASE64 =
@@ -638,7 +638,7 @@ FrozenTrie.prototype = {
         if (Memoization[index])	// if already constructed a FrozenNode for this index
 	    return Memoization[index];
 
-        hist.push(index);	// profiling debugging
+        //hist.push(index);	// profiling debugging
 
         // retrieve the 6-bit letter.
         var final = this.data.get( this.letterStart + index * 6, 1 ) === 1;
@@ -941,7 +941,8 @@ if (TR_STANDALONE) {
 
     harvest = 1;
     let solve = mk_solver();
-    let jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
+    let jstr;
+    if (harvest) jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
   if (0) {
     if (jstr.length < 800) {
 	console.log(jstr);   // display the encoded (base64) trie with its directory
