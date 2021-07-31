@@ -157,6 +157,31 @@ BitWriter.prototype =
         }
     },
 
+    put7Abstract: function(id) {
+	let countSoFar = 0;
+	let offset = 0;
+
+	console.log(`@ ${id}`);
+        for (let j = 0; j < this.bits.length; ++j) {
+	    if (this.bits[j]) {
+	        ++countSoFar;   // global count of # of bits=1 since the beginning
+		++offset;
+	    }
+	    if (0 === j % 128) {
+	        // Output 3 ASCII character # representing 21 bits of the integer "countSoFar"
+		console.log((countSoFar >>14) & 0b1111111);
+		console.log((countSoFar >> 7) & 0b1111111);
+		console.log((countSoFar >> 0) & 0b1111111);
+		offset = 0;
+	    }
+	    else if (0 === j % 32) {
+	        // Output 1 ASCII character # representing the 7 bits of the integer "offset"
+		console.log(offset);
+	    }
+	}
+	console.log("@ trailer");
+    },
+
     put7Data: function(id) {   // Bit Writer->put7Data to console the 7-bit ASCII codes
         let b = 0;
 	let i = 0;
@@ -593,6 +618,7 @@ Trie.prototype = {
 
         debugString = bits.getDebugString(7);  // arg[0]: number of bits printed between spaces
 	if (harvest) bits.put7Data("encTrie");
+	if (harvest) bits.put7Abstract("encAbstract");
         return bits.getData();
     }// encode()
 };
@@ -632,7 +658,7 @@ FrozenNode.prototype = {
 };
 
 /**
-    The FrozenTrie is used for looking up words in the encoded trie.
+    The Frozen Trie is used for looking up words in the encoded trie.
 
     @param data A string representing the encoded trie.
 
@@ -641,16 +667,17 @@ FrozenNode.prototype = {
 
     @param nodeCount The number of nodes in the trie.
   */
-function FrozenTrie( data, directoryData, nodeCount, letterData )
+function FrozenTrie( data, directoryData, nodeCount, letterData, abstractData )
 {
-    this.init( data, directoryData, nodeCount, letterData );
+    this.init( data, directoryData, nodeCount, letterData, abstractData );
 }
 
 FrozenTrie.prototype = {
-    init: function( data, directoryData, nodeCount, letterData )
+    init: function( data, directoryData, nodeCount, letterData, abstractData )
     {
         this.data = new BitString( data );
 	this.letterData = letterData;
+	this.abstract = abstractData;
         this.directory = new RankDirectory( directoryData, data, 
                 nodeCount * 2 + 1, L1, L2 );
 
@@ -840,8 +867,9 @@ function getWords() {
         let wordArr;
         //return ["hat", "peace", "hats"];
         //return ["hats"];
-	wordArr = ["hat", "hats", "it", "is", "a", "sax", "saxc", "get"];
-	wordArr = ["hat", "it", "is", "a", ];
+	wordArr = ["hat", "it", "is", "a",];
+	wordArr = ["hat", "hats", "it", "is", "a", "sax", "saxc",
+		"get", "noun", "open", "peach", "rest", "turkey"];
 	//wordArr = readFile("../boggle/everyday").split('\n');
 	//wordArr.length = 500;
 	return wordArr;
@@ -996,7 +1024,7 @@ if (TR_STANDALONE) {
     ];
     puzzle.length = 2;
 
-    harvest = 0;
+    harvest = 1;
     let jstr;
     let solve = mk_solver();
     if (true || harvest) {
