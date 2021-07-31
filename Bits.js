@@ -70,7 +70,6 @@ let debugString = "";
 let callsToSelect = 0;	// profiling
 //let hist = [];  // profiling
 let Memoization = [];
-let Abstract = [];
 load("enctrie.js");
 var BASE64 =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -375,7 +374,6 @@ RankDirectory.Create = function( data, numBits, l1Size, l2Size ) {
     var bits = new BitString( data );
     var p = 0;
     var i = 0;
-    let ai = 0;   // abstract index
     var count1 = 0, count2 = 0;
     var l1bits = Math.ceil( Math.log( numBits ) / Math.log(2) );
     var l2bits = Math.ceil( Math.log( l1Size ) / Math.log(2) );
@@ -384,8 +382,6 @@ RankDirectory.Create = function( data, numBits, l1Size, l2Size ) {
 
     var directory = new BitWriter();
 
-    Abstract[ai++] = 0;
-
     while( p + l2Size <= numBits ) {
         count2 += bits.count( p, l2Size );
         i += l2Size;
@@ -393,24 +389,23 @@ RankDirectory.Create = function( data, numBits, l1Size, l2Size ) {
         if ( i === l1Size ) {
             count1 += count2;
             directory.write( count1, l1bits );
-	    Abstract[ai++] = count1;
             count2 = 0;
             i = 0;
         }
 	else {
             directory.write( count2, l2bits );
-	    Abstract[ai++] = count2;
         }
     }
     if (harvest) directory.put7Data("encDir");
     return new RankDirectory( directory.getData(), data, numBits, l1Size, l2Size );
-};
+};  // RankDirectory.Create
 
 
 RankDirectory.prototype = {
 
     init: function( directoryData, bitData, numBits, l1Size, l2Size ) {
-        this.directory = new BitString( directoryData );
+        this.directory = new BitString( '' );
+	this.abstract = directoryData;
         this.data = new BitString( bitData );
         this.l1Size = l1Size;
         this.l2Size = l2Size;
@@ -427,33 +422,43 @@ RankDirectory.prototype = {
         return this.directory.getData();
     },
 
-    rank7: function( which, x ) {
-
-	++x;
-        let q1 = Math.floor(x/128);
-	x = x - q1*128;
-
-	let q2 = Math.floor(x/32);
-	let remainder = x % 32;
-	x = x - q2*32;
-
-	let c1 = Abstract[q1*4];
-	let c2 = Abstract[q1*4 + q2];
-
-	let base = kk
-
-	//return c1 + c2 + this.data.co unt();
-
-    },
     /**
       Returns the number of 1 or 0 bits (depending on the "which" parameter)
       up to and including position x.
       */
     rank: function( which, x ) {
+        let csf, offset;
 
         if ( which === 0 ) {
-            return x - this.rank( 1, x ) + 1;  // choose rank() or rank7()
+            return x - this.rank( 1, x ) + 1;
         }
+
+	let q1 = Math.floor(x / 128);
+	let r1 = x % 128;
+	let q2 = Math.floor(r1 / 32);
+	let r2 = r1 % 32;
+
+	let csfIndex = q1*6;
+	let c2 = this.abstract.charCodeAt(csfIndex+0);
+	let c1 = this.abstract.charCodeAt(csfIndex+1);
+	let c0 = this.abstract.charCodeAt(csfIndex+2);
+	console.log("c2/c1/c0", c2,c1,c0);
+
+	csf = c2*16384 + c1*128 + c0;
+
+	//BUG let offIndex = q2 + (csfIndex+2);
+	//BUG offset = this.abstract[offIndex].charCodeAt(0);
+
+	offset = (0===q2) ?  0 :  this.abstract.charCodeAt(q2 + (csfIndex+2));
+
+	let start = 1 + q1*128 + q2*32;
+	let count =  this.data.count(start, r2);
+
+	let sum = csf + offset + count;
+	console.log(`rank( ${x} ) ${csf}+${offset}+${count}=${sum}`);  // debugging
+	console.log("slowDebug(x)", x, this.data.rankSlowDebug(x));  // debugging
+	return sum;
+	// NOTREACHED
 
         var rank = 0;              
         var o = x;
@@ -616,7 +621,7 @@ Trie.prototype = {
         });
 	if (harvest) console.log("@ trailer");
 
-        debugString = bits.getDebugString(7);  // arg[0]: number of bits printed between spaces
+        debugString = bits.getDebugString(8);  // arg[0]: number of bits printed between spaces
 	if (harvest) bits.put7Data("encTrie");
 	if (harvest) bits.put7Abstract("encAbstract");
         return bits.getData();
@@ -678,7 +683,7 @@ FrozenTrie.prototype = {
         this.data = new BitString( data );
 	this.letterData = letterData;
 	this.abstract = abstractData;
-        this.directory = new RankDirectory( directoryData, data, 
+        this.directory = new RankDirectory( abstractData, data, 
                 nodeCount * 2 + 1, L1, L2 );
 
         // The position of the first bit of the data in 0th node. In non-root
@@ -724,14 +729,18 @@ FrozenTrie.prototype = {
 
         var firstChild = this.directory.select( 0, index+1 ) - index;
 
+console.log("get NodeByIndex Q", index, letter, final, firstChild);
+
         // Since the nodes are in level order, this node's children must go up
         // until the next node's children start.
 	//
         var childOfNextNode = this.directory.select( 0, index + 2 ) - index - 1;
 
+console.log("get NodeByIndex T", childOfNextNode-firstChild);
+	
 	return Memoization[index] = new FrozenNode( this, index, letter, final, firstChild,
                 childOfNextNode - firstChild );
-    },
+    },  // get NodeByIndex
 
     /**
       Retrieve the root node.  You can use this node to obtain all of the other
@@ -830,7 +839,7 @@ FrozenTrie.prototype = {
       */
     lookup: function( word ) 
     {
-        console.log("lookup", word);  // debugging
+        //console.log("lookup", word);  // debugging
 
         var node = this.getRoot();
         for ( var i = 0; i < word.length; i++ ) {
@@ -935,25 +944,24 @@ function go()
 function searchTrie(so, w)   
 {
     var status = "";
-    try 
-    {
+    //try {
         //var json = (so) ? eval(`(${so})`) : eval( '(' + document.getElementById("output").value + ")" );
 
-	console.log("search Trie 3", w);  // debugging
+	//console.log("search Trie 3", w);  // debugging
         //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
-        var ftrie = new FrozenTrie( encTrie, encDir, nodeCount, encLetter);
+        var ftrie = new FrozenTrie( encTrie, encDir, nodeCount, encLetter, encAbstract);
         var word = w || document.getElementById("lookup").value;
 
-	console.log("search Trie 5", word);  // debugging
+	//console.log("search Trie 5", word);  // debugging
 
         if ( ftrie.lookup( word ) ) {
             status = '"' + word + '" is in the dictionary.';
         } else {
             status = '"' + word + '" IS NOT in.';
         }
-    } catch ( e ) {
-        status = "Error. Have you encoded the dictionary yet?";
-    }
+    //} catch ( e ) {
+        //status = "Error. Have you encoded the dictionary yet?";
+    //}
 
     if (w) return status;
     document.getElementById("status").innerHTML = status;
@@ -965,7 +973,7 @@ function searchGame(so) {
 
 	//console.log("searchGame 5", json.nodeCount);  // debugging
 
-        var ftrie = new FrozenTrie( encTrie, encDir, nodeCount, encLetter);
+        var ftrie = new FrozenTrie( encTrie, encDir, nodeCount, encLetter, encAbstract);
         //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
 
 	console.log("searchGame 7 dir len");  // debugging
@@ -1024,7 +1032,7 @@ if (TR_STANDALONE) {
     ];
     puzzle.length = 2;
 
-    harvest = 1;
+    harvest = 0;
     let jstr;
     let solve = mk_solver();
     if (true || harvest) {
@@ -1059,7 +1067,7 @@ if (0) {
     }
 }
 else {
-    while (1) {
+    while (harvest === 0) {
         console.log("Enter word to lookup:");
         let w = getline().trim();  // calls quit()
 	console.log(solve.searchTrie(jstr, w));
