@@ -178,8 +178,7 @@ function callbackSolve(puzzle) {
         solve.setGame(puzzle[idx].toLowerCase());
     console.time("sw");
 	populateDOM(idx, solve.searchGame());
-    console.timeLog("sw", "in searchGame()");
-    console.timeEnd("sw");
+    console.timeEnd("sw", "in searchGame()");
     }
     //let stop = Date.now();	// profiling
     //console.log("callbackSolve 9 ", stop - start);	// profiling
@@ -196,8 +195,8 @@ function bodyLoaded() {
 	 return acc;
      }
 
-    console.log("bodyLoaded 0", encTrie.length, encDir.length);
-    console.log("bodyLoaded 1", sumstr(encTrie, 0), sumstr(encDir, 0));
+    //console.log("bodyLoaded 0", encTrie.length, encAbstract.length);  // debugging
+    //console.log("bodyLoaded 1", sumstr(encTrie, 0), sumstr(encAbstract, 0));  // debugging
     //let code = checkCode();
     //if ( undefined === code )
      //   return;
@@ -220,7 +219,12 @@ function bodyLoaded() {
     // grids are populated.  Do this before the more involved computation of
     // decompressing the dictionary and solving the puzzles.
     //
-    setTimeout(callbackSolve, 1, puzzle);
+    if (0) {
+	setTimeout(callbackSolve, 1, puzzle);
+    }
+    else {
+	callbackSolve(puzzle);
+    }
 }
 </script>
 </body>

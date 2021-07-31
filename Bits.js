@@ -70,7 +70,8 @@ let debugString = "";
 let callsToSelect = 0;	// profiling
 //let hist = [];  // profiling
 let Memoization = [];
-load("enctrie.js");
+load("enctrie.js");	// Before, this load() defined "encDir" string
+let encDir = '';	// Change to use encAbstract deprecates the directory
 var BASE64 =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
@@ -379,7 +380,7 @@ RankDirectory.Create = function( data, numBits, l1Size, l2Size ) {
     var l1bits = Math.ceil( Math.log( numBits ) / Math.log(2) );
     var l2bits = Math.ceil( Math.log( l1Size ) / Math.log(2) );
 
-    console.log("numBits/l1/l2bits", numBits,l1bits,l2bits);
+    //console.log("numBits/l1/l2bits", numBits,l1bits,l2bits);  // debugging
 
     var directory = new BitWriter();
 
@@ -397,7 +398,7 @@ RankDirectory.Create = function( data, numBits, l1Size, l2Size ) {
             directory.write( count2, l2bits );
         }
     }
-    if (harvest) directory.put7Data("encDir");
+    //if (harvest) directory.put7Data("encDir");  // abstract replaces directory
     return new RankDirectory( directory.getData(), data, numBits, l1Size, l2Size );
 };  // RankDirectory.Create
 
@@ -447,9 +448,6 @@ RankDirectory.prototype = {
 
 	csf = c2*16384 + c1*128 + c0;
 
-	//BUG let offIndex = q2 + (csfIndex+2);
-	//BUG offset = this.abstract[offIndex].charCodeAt(0);
-
 	offset = (0===q2) ?  0 :  this.abstract.charCodeAt(q2 + (csfIndex+2));
 
 	let start = 1 + q1*128 + q2*32;
@@ -459,23 +457,6 @@ RankDirectory.prototype = {
 	//console.log(`rank( ${x} ) ${csf}+${offset}+${count}=${sum}`);  // debugging
 	//console.log("slowDebug(x)", x, this.data.rankSlowDebug(x));  // debugging
 	return sum;
-	// NOTREACHED
-
-        var rank = 0;              
-        var o = x;
-        var sectionPos = 0;
-
-        if ( o >= this.l1Size ) {
-            sectionPos = ( o / this.l1Size | 0 ) * this.sectionBits;
-            rank = this.directory.get( sectionPos - this.l1Bits, this.l1Bits );
-            o = o % this.l1Size;
-        }
-
-        if ( o >= this.l2Size ) {
-            sectionPos += ( o / this.l2Size | 0 ) * this.l2Bits;
-            rank += this.directory.get( sectionPos - this.l2Bits, this.l2Bits );
-        }
-	return rank + this.data.count( x - x % this.l2Size, x % this.l2Size + 1 );
     },
 
     /**
@@ -789,7 +770,7 @@ FrozenTrie.prototype = {
         let letter = Game[pos];
 	let child;
 
-	//console.log("wordfind 3", letter);
+	//console.log("wordfind 3", letter);  // debugging
 
 	child = this.getChildByLetter(base, letter);
 	if (!child)
@@ -820,10 +801,10 @@ FrozenTrie.prototype = {
     getChildByLetter: function (parent, letter) {
         let child;
 
-	//console.log("getChildByLetter 3", letter, parent.getChildCount());
+	//console.log("getChildByLetter 3", letter, parent.getChildCount());  // debugging
         for (var idx=0; idx < parent.getChildCount(); ++idx) {
 	    child = parent.getChild(idx);
-	    //console.log("getChildByLetter 5", child.letter);
+	    //console.log("getChildByLetter 5", child.letter);  // debugging
 	    if (child.letter === letter) {
 	        return child;
 	    }
@@ -875,8 +856,6 @@ FrozenTrie.prototype = {
 
 function getWords() {
         let wordArr;
-        //return ["hat", "peace", "hats"];
-        //return ["hats"];
 	wordArr = ["hat", "it", "is", "a",];
 	wordArr = ["hat", "hats", "it", "is", "a", "sax", "saxc",
 		"get", "noun", "open", "peach", "rest", "turkey"];
