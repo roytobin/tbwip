@@ -70,6 +70,7 @@ let debugString = "";
 let callsToSelect = 0;	// profiling
 //let hist = [];  // profiling
 let Memoization = [];
+let Abstract = [];
 load("enctrie.js");
 var BASE64 =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -77,9 +78,11 @@ var BASE64 =
 /**
     The width of each unit of the encoding, in bits. Here we use 6, for base-64
     encoding.  If this W changes, need to also change ORD(), CHR() and BitString.MaskTop
+    [update: use 7 bits so each encoding is a single ASCII (7-bit) character]
  */
 const W = 7;  
 
+function getDS() { return debugString };
 function setGame(g) { Game = g }
 
 /**
@@ -119,10 +122,10 @@ function ORD(ch)
     Fixed values for the L1 and L2 table sizes in the Rank Directory
 */
 let L1, L2;
-L2 = 16;
 L2 = 32;
 L2 = 64;
-L1 = L2*L2;
+L1 = 4*L2;
+L1 = 32;
 
 /**
     The BitWriter will create a stream of bytes, letting you write a certain
@@ -211,7 +214,7 @@ BitWriter.prototype =
         }
         return chars.join("");
     },
-};
+};  // BitWriter
 
 /**
     Given a string of data (eg, in BASE-64), the BitString class supports
@@ -347,13 +350,16 @@ RankDirectory.Create = function( data, numBits, l1Size, l2Size ) {
     var bits = new BitString( data );
     var p = 0;
     var i = 0;
+    let ai = 0;   // abstract index
     var count1 = 0, count2 = 0;
     var l1bits = Math.ceil( Math.log( numBits ) / Math.log(2) );
     var l2bits = Math.ceil( Math.log( l1Size ) / Math.log(2) );
 
-    //console.log("l1/l2bits", l1bits,l2bits);
+    console.log("numBits/l1/l2bits", numBits,l1bits,l2bits);
 
     var directory = new BitWriter();
+
+    Abstract[ai++] = 0;
 
     while( p + l2Size <= numBits ) {
         count2 += bits.count( p, l2Size );
@@ -362,10 +368,13 @@ RankDirectory.Create = function( data, numBits, l1Size, l2Size ) {
         if ( i === l1Size ) {
             count1 += count2;
             directory.write( count1, l1bits );
+	    Abstract[ai++] = count1;
             count2 = 0;
             i = 0;
-        } else {
+        }
+	else {
             directory.write( count2, l2bits );
+	    Abstract[ai++] = count2;
         }
     }
     if (harvest) directory.put7Data("encDir");
@@ -393,6 +402,24 @@ RankDirectory.prototype = {
         return this.directory.getData();
     },
 
+    rank7: function( which, x ) {
+
+	++x;
+        let q1 = Math.floor(x/128);
+	x = x - q1*128;
+
+	let q2 = Math.floor(x/32);
+	let remainder = x % 32;
+	x = x - q2*32;
+
+	let c1 = Abstract[q1*4];
+	let c2 = Abstract[q1*4 + q2];
+
+	let base = kk
+
+	//return c1 + c2 + this.data.co unt();
+
+    },
     /**
       Returns the number of 1 or 0 bits (depending on the "which" parameter)
       up to and including position x.
@@ -400,7 +427,7 @@ RankDirectory.prototype = {
     rank: function( which, x ) {
 
         if ( which === 0 ) {
-            return x - this.rank( 1, x ) + 1;
+            return x - this.rank( 1, x ) + 1;  // choose rank() or rank7()
         }
 
         var rank = 0;              
@@ -544,6 +571,7 @@ Trie.prototype = {
 	// In bit[5], store the "final" flag.  The remaining five
 	// lower bits encode a lowercase letter of the latin alphabet.
 	//
+	if (harvest) console.log("@ encLetter");
         var a = ("a").charCodeAt(0);
         this.traverseTree( function( node ) {
             var value = node.letter.charCodeAt(0) - a;
@@ -558,8 +586,10 @@ Trie.prototype = {
                 value |= 0x20;
             }
 
-            bits.write( value, 6 );
+            //bits.write( value, 6 );
+	    if (harvest) console.log(value);
         });
+	if (harvest) console.log("@ trailer");
 
         debugString = bits.getDebugString(7);  // arg[0]: number of bits printed between spaces
 	if (harvest) bits.put7Data("encTrie");
@@ -611,15 +641,16 @@ FrozenNode.prototype = {
 
     @param nodeCount The number of nodes in the trie.
   */
-function FrozenTrie( data, directoryData, nodeCount )
+function FrozenTrie( data, directoryData, nodeCount, letterData )
 {
-    this.init( data, directoryData, nodeCount );
+    this.init( data, directoryData, nodeCount, letterData );
 }
 
 FrozenTrie.prototype = {
-    init: function( data, directoryData, nodeCount )
+    init: function( data, directoryData, nodeCount, letterData )
     {
         this.data = new BitString( data );
+	this.letterData = letterData;
         this.directory = new RankDirectory( directoryData, data, 
                 nodeCount * 2 + 1, L1, L2 );
 
@@ -635,16 +666,35 @@ FrozenTrie.prototype = {
       */
     getNodeByIndex: function( index )
     {
+        let final, letter;
+
         if (Memoization[index])	// if already constructed a FrozenNode for this index
 	    return Memoization[index];
 
         //hist.push(index);	// profiling debugging
 
-        // retrieve the 6-bit letter.
-        var final = this.data.get( this.letterStart + index * 6, 1 ) === 1;
-        var letter = String.fromCharCode(
-                this.data.get( this.letterStart + index * 6 + 1, 5 ) + 
-                'a'.charCodeAt(0));
+        if (1) {
+	    // Retrieve the ASCII character that encodes the letter.
+	    // bit[5] is the "final" flag, bits[4:0] is the letter 0..25 => a..z
+	    // bit[6] is always clear by design constraint.
+	    //
+	    let c = this.letterData[index].charCodeAt(0);
+
+	    final = false;
+	    if (c >= 32) {   // Is bit[5] set?
+		final = true;
+		c = c - 32;  // Clear bit[5] arithmetically
+	    }
+	    letter = String.fromCharCode( c + 'a'.charCodeAt(0) );
+	}
+	else {
+	    // retrieve the 6-bit letter.
+	    final = this.data.get( this.letterStart + index * 6, 1 ) === 1;
+	    letter = String.fromCharCode(
+		    this.data.get( this.letterStart + index * 6 + 1, 5 ) + 
+		    'a'.charCodeAt(0));
+	}
+
         var firstChild = this.directory.select( 0, index+1 ) - index;
 
         // Since the nodes are in level order, this node's children must go up
@@ -753,7 +803,7 @@ FrozenTrie.prototype = {
       */
     lookup: function( word ) 
     {
-        //console.log("lookup");  // debugging
+        console.log("lookup", word);  // debugging
 
         var node = this.getRoot();
         for ( var i = 0; i < word.length; i++ ) {
@@ -761,7 +811,7 @@ FrozenTrie.prototype = {
             for ( var j = 0; j < node.getChildCount(); j++ ) {
                 child = node.getChild( j );
 
-		//console.log(child.letter);  // debugging
+		console.log(child.letter);  // debugging
 
 		// If the child node's letter matches what we are seeking,
 		// we are done.  Also, since the trie is in sorted order,
@@ -792,7 +842,7 @@ function getWords() {
         //return ["hats"];
 	wordArr = ["hat", "hats", "it", "is", "a", "sax", "saxc", "get"];
 	wordArr = ["hat", "it", "is", "a", ];
-	wordArr = readFile("../boggle/everyday").split('\n');
+	//wordArr = readFile("../boggle/everyday").split('\n');
 	//wordArr.length = 500;
 	return wordArr;
 }
@@ -859,9 +909,11 @@ function searchTrie(so, w)
     var status = "";
     try 
     {
-        var json = (so) ? eval(`(${so})`) : eval( '(' + document.getElementById("output").value + ")" );
+        //var json = (so) ? eval(`(${so})`) : eval( '(' + document.getElementById("output").value + ")" );
 
-        var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
+	console.log("search Trie 3", w);  // debugging
+        //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
+        var ftrie = new FrozenTrie( encTrie, encDir, nodeCount, encLetter);
         var word = w || document.getElementById("lookup").value;
 
 	console.log("search Trie 5", word);  // debugging
@@ -869,7 +921,7 @@ function searchTrie(so, w)
         if ( ftrie.lookup( word ) ) {
             status = '"' + word + '" is in the dictionary.';
         } else {
-            status = '"' + word + '" IS NOT in the dictionary.';
+            status = '"' + word + '" IS NOT in.';
         }
     } catch ( e ) {
         status = "Error. Have you encoded the dictionary yet?";
@@ -885,7 +937,7 @@ function searchGame(so) {
 
 	//console.log("searchGame 5", json.nodeCount);  // debugging
 
-        var ftrie = new FrozenTrie( encTrie, encDir, nodeCount);
+        var ftrie = new FrozenTrie( encTrie, encDir, nodeCount, encLetter);
         //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
 
 	console.log("searchGame 7 dir len");  // debugging
@@ -902,7 +954,12 @@ function searchGame(so) {
 	return ftrie.getSearchResults();
     //} catch (e) { return ["Error. searchGame() Have you encoded the dictionary yet?"]; }
 }
-return {setGame: setGame,  go: go,   searchGame: searchGame};
+return {setGame:    setGame,
+	go:         go,
+	searchGame: searchGame,
+	searchTrie: searchTrie,
+        getDS:      getDS,
+	};
 }
 // END
 
@@ -939,19 +996,22 @@ if (TR_STANDALONE) {
     ];
     puzzle.length = 2;
 
-    harvest = 1;
-    let solve = mk_solver();
+    harvest = 0;
     let jstr;
-    if (harvest) jstr = solve.go();  // retrieve a json string representing a object literal of the encoded trie
+    let solve = mk_solver();
+    if (true || harvest) {
+        jstr = solve.go();  // retrieve a json string representing the encoded trie
+	console.log("length of trie object literal as ASCII", jstr.length);
+	console.log(solve.getDS());
+    }
+
   if (0) {
     if (jstr.length < 800) {
 	console.log(jstr);   // display the encoded (base64) trie with its directory
-	console.log(debugString);
     }
-    console.log("length of trie object literal as ASCII", jstr.length);
   }
 
-if (1) {
+if (0) {
     for (let idx = 0; idx < puzzle.length; ++idx) {
         solve.setGame(puzzle[idx]);
 
@@ -972,10 +1032,9 @@ if (1) {
 }
 else {
     while (1) {
+        console.log("Enter word to lookup:");
         let w = getline().trim();  // calls quit()
-	console.log(searchTrie(jstr, w));
-	console.log("callsToSelect",callsToSelect);
-	console.log(hist);
+	console.log(solve.searchTrie(jstr, w));
     }
     // NOTREACHED
 }
