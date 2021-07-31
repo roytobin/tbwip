@@ -81,7 +81,8 @@ var BASE64 =
  */
 const W = 7;  
 
-function getDS() { return debugString };
+function getMemo() { return Memoization }
+function getDS() { return debugString }
 function setGame(g) { Game = g }
 
 /**
@@ -442,7 +443,7 @@ RankDirectory.prototype = {
 	let c2 = this.abstract.charCodeAt(csfIndex+0);
 	let c1 = this.abstract.charCodeAt(csfIndex+1);
 	let c0 = this.abstract.charCodeAt(csfIndex+2);
-	console.log("c2/c1/c0", c2,c1,c0);
+	//console.log("c2/c1/c0", c2,c1,c0);  //debugging
 
 	csf = c2*16384 + c1*128 + c0;
 
@@ -455,8 +456,8 @@ RankDirectory.prototype = {
 	let count =  this.data.count(start, r2);
 
 	let sum = csf + offset + count;
-	console.log(`rank( ${x} ) ${csf}+${offset}+${count}=${sum}`);  // debugging
-	console.log("slowDebug(x)", x, this.data.rankSlowDebug(x));  // debugging
+	//console.log(`rank( ${x} ) ${csf}+${offset}+${count}=${sum}`);  // debugging
+	//console.log("slowDebug(x)", x, this.data.rankSlowDebug(x));  // debugging
 	return sum;
 	// NOTREACHED
 
@@ -729,14 +730,14 @@ FrozenTrie.prototype = {
 
         var firstChild = this.directory.select( 0, index+1 ) - index;
 
-console.log("get NodeByIndex Q", index, letter, final, firstChild);
+//console.log("get NodeByIndex Q", index, letter, final, firstChild);  // debugging
 
         // Since the nodes are in level order, this node's children must go up
         // until the next node's children start.
 	//
         var childOfNextNode = this.directory.select( 0, index + 2 ) - index - 1;
 
-console.log("get NodeByIndex T", childOfNextNode-firstChild);
+//console.log("get NodeByIndex T", childOfNextNode-firstChild);  // debugging
 	
 	return Memoization[index] = new FrozenNode( this, index, letter, final, firstChild,
                 childOfNextNode - firstChild );
@@ -847,7 +848,7 @@ console.log("get NodeByIndex T", childOfNextNode-firstChild);
             for ( var j = 0; j < node.getChildCount(); j++ ) {
                 child = node.getChild( j );
 
-		console.log(child.letter);  // debugging
+		//console.log(child.letter);  // debugging
 
 		// If the child node's letter matches what we are seeking,
 		// we are done.  Also, since the trie is in sorted order,
@@ -879,7 +880,7 @@ function getWords() {
 	wordArr = ["hat", "it", "is", "a",];
 	wordArr = ["hat", "hats", "it", "is", "a", "sax", "saxc",
 		"get", "noun", "open", "peach", "rest", "turkey"];
-	//wordArr = readFile("../boggle/everyday").split('\n');
+	wordArr = readFile("../boggle/everyday").split('\n');
 	//wordArr.length = 500;
 	return wordArr;
 }
@@ -976,7 +977,7 @@ function searchGame(so) {
         var ftrie = new FrozenTrie( encTrie, encDir, nodeCount, encLetter, encAbstract);
         //var ftrie = new FrozenTrie( json.trie, json.directory, json.nodeCount);
 
-	console.log("searchGame 7 dir len");  // debugging
+	//console.log("searchGame 7 dir len");  // debugging
 	if (0) {
 	    let pos = 0;
 	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
@@ -986,7 +987,7 @@ function searchGame(so) {
 	    ftrie.wordfind(ftrie.getRoot(), pos, "", 0);
 	}
 	}
-	console.log("searchGame 9");    // debugging
+	//console.log("searchGame 9");    // debugging
 	return ftrie.getSearchResults();
     //} catch (e) { return ["Error. searchGame() Have you encoded the dictionary yet?"]; }
 }
@@ -995,6 +996,7 @@ return {setGame:    setGame,
 	searchGame: searchGame,
 	searchTrie: searchTrie,
         getDS:      getDS,
+	getMemo:    getMemo,
 	};
 }
 // END
@@ -1030,7 +1032,7 @@ if (TR_STANDALONE) {
     "togsnskiraoasrlr",
     "oikrgsrietihychd",
     ];
-    puzzle.length = 2;
+    puzzle.length = 19;
 
     harvest = 0;
     let jstr;
@@ -1038,16 +1040,16 @@ if (TR_STANDALONE) {
     if (true || harvest) {
         jstr = solve.go();  // retrieve a json string representing the encoded trie
 	console.log("length of trie object literal as ASCII", jstr.length);
-	console.log(solve.getDS());
+	if (jstr.length < 800) console.log(solve.getDS());
     }
 
-  if (0) {
-    if (jstr.length < 800) {
-	console.log(jstr);   // display the encoded (base64) trie with its directory
+    if (0) {
+      if (jstr.length < 800) {
+	  console.log(jstr);   // display the encoded (base64) trie with its directory
+      }
     }
-  }
 
-if (0) {
+if (1) {
     for (let idx = 0; idx < puzzle.length; ++idx) {
         solve.setGame(puzzle[idx]);
 
@@ -1060,10 +1062,10 @@ if (0) {
 	let r = solve.searchGame();
 	stop = Date.now();
 
-	//console.log(r.length, "words found.  And ",Memoization.length," memoization");
 	console.log(r.length, "words found.");
 	console.log(r);
 	console.log(stop-start, "milliseconds");
+	console.log("Memo length", solve.getMemo().length);
     }
 }
 else {
