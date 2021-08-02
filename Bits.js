@@ -619,11 +619,26 @@ function FrozenNode( trie, index, letter, final, firstChild, childCount )
     this.index = index;
     this.letter = letter;
     this.final = final;
+    this.cached = null;		// becomes non-null once the cache is initialized
     this.firstChild = firstChild;
     this.childCount = childCount;
 }
 
 FrozenNode.prototype = {
+    cachedChildByLetter: function(letter) {
+        return this.cached[letter];
+    },
+
+    cacheTheChildren: function() {
+        let child;   // a FrozenNode
+
+        this.cached = {};
+	for (let idx=0; idx < this.getChildCount(); ++idx) {
+	    child = this.getChild(idx);
+	    this.cached[child.letter] = child;
+	}
+    },
+
     /**
       Returns the number of children.
       */
@@ -692,7 +707,7 @@ FrozenTrie.prototype = {
 	    // bit[5] is the "final" flag, bits[4:0] is the letter 0..25 => a..z
 	    // bit[6] is always clear by design constraint.
 	    //
-	    let c = this.letterData[index].charCodeAt(0);
+	    let c = this.letterData.charCodeAt(index);
 
 	    final = false;
 	    if (c >= 32) {   // Is bit[5] set?
@@ -800,6 +815,15 @@ FrozenTrie.prototype = {
     // @param letter is a string (expect it to be a single character)
     getChildByLetter: function (parent, letter) {
         let child;
+
+	if (parent.cached) {
+	    return parent.cachedChildByLetter(letter);
+	}
+
+	if (parent.index < 703) {
+	    parent.cacheTheChildren();
+	    return parent.cachedChildByLetter(letter);
+	}
 
 	//console.log("getChildByLetter 3", letter, parent.getChildCount());  // debugging
         for (var idx=0; idx < parent.getChildCount(); ++idx) {
@@ -1011,7 +1035,7 @@ if (TR_STANDALONE) {
     "togsnskiraoasrlr",
     "oikrgsrietihychd",
     ];
-    puzzle.length = 19;
+    puzzle.length = 7;
 
     harvest = 0;
     let jstr;
