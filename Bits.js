@@ -633,7 +633,7 @@ FrozenNode.prototype = {
         let child;   // a FrozenNode
 
         this.cached = {};
-	for (let idx=0; idx < this.getChildCount(); ++idx) {
+	for (let idx=0; idx < this.childCount; ++idx) {
 	    child = this.getChild(idx);
 	    this.cached[child.letter] = child;
 	}
@@ -826,7 +826,8 @@ FrozenTrie.prototype = {
 	}
 
 	//console.log("getChildByLetter 3", letter, parent.getChildCount());  // debugging
-        for (var idx=0; idx < parent.getChildCount(); ++idx) {
+	let max =  parent.getChildCount();
+	for (var idx=0; idx < max; ++idx) {
 	    child = parent.getChild(idx);
 	    //console.log("getChildByLetter 5", child.letter);  // debugging
 	    if (child.letter === letter) {
@@ -850,7 +851,8 @@ FrozenTrie.prototype = {
         var node = this.getRoot();
         for ( var i = 0; i < word.length; i++ ) {
             var child;
-            for ( var j = 0; j < node.getChildCount(); j++ ) {
+	    let max = node.getChildCount();
+	    for ( var j = 0; j < max; j++ ) {
                 child = node.getChild( j );
 
 		//console.log(child.letter);  // debugging
@@ -869,7 +871,7 @@ FrozenTrie.prototype = {
 		}
             }
 
-            if ( j === node.getChildCount() ) {
+            if ( j === max ) {
                 return false;
             }
             node = child;

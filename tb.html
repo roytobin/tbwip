@@ -370,7 +370,7 @@ How many can you find? <span id=percent7></span>
 <h5>Feedback:  https://github.com/roytobin/ebs/issues/ </h5>
 <div class="pagebreak"></div>
 
-<h4> Solution page for Easy Boggle Solitaire </h4>
+<h4> Solution page for Easy Boggle Solitaire (succinct trie version)</h4>
 <h5>https://roytobin.github.io/ebs/ The five letter book code
 for this book of puzzles: <span class="code"></span></h5>
 
@@ -401,6 +401,7 @@ for this book of puzzles: <span class="code"></span></h5>
 "use strict"
 
 const NumPuzzles = 7;
+let solve;
 
 // BEGIN
 // A generator function that produces
@@ -2348,11 +2349,26 @@ function FrozenNode( trie, index, letter, final, firstChild, childCount )
     this.index = index;
     this.letter = letter;
     this.final = final;
+    this.cached = null;		// becomes non-null once the cache is initialized
     this.firstChild = firstChild;
     this.childCount = childCount;
 }
 
 FrozenNode.prototype = {
+    cachedChildByLetter: function(letter) {
+        return this.cached[letter];
+    },
+
+    cacheTheChildren: function() {
+        let child;   // a FrozenNode
+
+        this.cached = {};
+	for (let idx=0; idx < this.childCount; ++idx) {
+	    child = this.getChild(idx);
+	    this.cached[child.letter] = child;
+	}
+    },
+
     /**
       Returns the number of children.
       */
@@ -2420,7 +2436,7 @@ FrozenTrie.prototype = {
 	    // bit[5] is the "final" flag, bits[4:0] is the letter 0..25 => a..z
 	    // bit[6] is always clear by design constraint.
 	    //
-	    let c = this.letterData[index].charCodeAt(0);
+	    let c = this.letterData.charCodeAt(index);
 
 	    final = false;
 	    if (c >= 32) {   // Is bit[5] set?
@@ -2526,7 +2542,17 @@ FrozenTrie.prototype = {
     getChildByLetter: function (parent, letter) {
         let child;
 
-        for (var idx=0; idx < parent.getChildCount(); ++idx) {
+	if (parent.cached) {
+	    return parent.cachedChildByLetter(letter);
+	}
+
+	if (parent.index < 703) {
+	    parent.cacheTheChildren();
+	    return parent.cachedChildByLetter(letter);
+	}
+
+	let max =  parent.getChildCount();
+	for (var idx=0; idx < max; ++idx) {
 	    child = parent.getChild(idx);
 	    if (child.letter === letter) {
 	        return child;
@@ -2548,7 +2574,8 @@ FrozenTrie.prototype = {
         var node = this.getRoot();
         for ( var i = 0; i < word.length; i++ ) {
             var child;
-            for ( var j = 0; j < node.getChildCount(); j++ ) {
+	    let max = node.getChildCount();
+	    for ( var j = 0; j < max; j++ ) {
                 child = node.getChild( j );
 
 
@@ -2566,7 +2593,7 @@ FrozenTrie.prototype = {
 		}
             }
 
-            if ( j === node.getChildCount() ) {
+            if ( j === max ) {
                 return false;
             }
             node = child;
@@ -2747,17 +2774,16 @@ function populateDOM(idx, sol) {
 }
 function callbackSolve(puzzle) {
     //let start = Date.now();  // profiling
-    console.time("sw");
-    let solve = mk_solver();
-    console.timeLog("sw", "in mk_solver()");
-    console.timeEnd("sw");
+//    console.time("sw");
+//    console.timeLog("sw", "in mk_solver()");
+//    console.timeEnd("sw");
 
-    for (let idx = 1; idx <= NumPuzzles; ++idx) {
+    for (let idx = 2; idx <= NumPuzzles; ++idx) {
         //console.log("callbackSolve", idx, puzzle[idx]);  // debugging
         solve.setGame(puzzle[idx].toLowerCase());
-    console.time("sw");
+//    console.time("sw");
 	populateDOM(idx, solve.searchGame());
-    console.timeEnd("sw", "in searchGame()");
+//    console.timeEnd("sw", "in searchGame()");
     }
     //let stop = Date.now();	// profiling
     //console.log("callbackSolve 9 ", stop - start);	// profiling
@@ -2794,16 +2820,15 @@ function bodyLoaded() {
 	populateGrid(idx, puzzle[idx]);
     }
 
-    // Relenquish back to render engine to update HTML page promptly now that the puzzle
-    // grids are populated.  Do this before the more involved computation of
-    // decompressing the dictionary and solving the puzzles.
+    // Solve and populate the 1st puzzle now, then relenquish back
+    // to render engine to update HTML page promptly now that the puzzle
+    // grids are populated.  Do this before the additional processing
+    // of solving and populating the remaining puzzles.
     //
-    if (0) {
-	setTimeout(callbackSolve, 1, puzzle);
-    }
-    else {
-	callbackSolve(puzzle);
-    }
+    solve = mk_solver();
+    solve.setGame(puzzle[1].toLowerCase());
+    populateDOM(1, solve.searchGame());
+    setTimeout(callbackSolve, 5, puzzle);
 }
 </script>
 </body>

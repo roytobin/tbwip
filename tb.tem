@@ -98,7 +98,7 @@ window.boggleVersion = '0.1';
 
 PAGES
 
-<h4> Solution page for Easy Boggle Solitaire </h4>
+<h4> Solution page for Easy Boggle Solitaire (succinct trie version)</h4>
 <h5>https://roytobin.github.io/ebs/ The five letter book code
 for this book of puzzles: <span class="code"></span></h5>
 
@@ -109,6 +109,7 @@ SOLUTION
 "use strict"
 
 const NumPuzzles = IDNUM;
+let solve;
 
 RANDSFC32
 BOGGLE
@@ -168,17 +169,16 @@ function populateDOM(idx, sol) {
 }
 function callbackSolve(puzzle) {
     //let start = Date.now();  // profiling
-    console.time("sw");
-    let solve = mk_solver();
-    console.timeLog("sw", "in mk_solver()");
-    console.timeEnd("sw");
+//    console.time("sw");
+//    console.timeLog("sw", "in mk_solver()");
+//    console.timeEnd("sw");
 
-    for (let idx = 1; idx <= NumPuzzles; ++idx) {
+    for (let idx = 2; idx <= NumPuzzles; ++idx) {
         //console.log("callbackSolve", idx, puzzle[idx]);  // debugging
         solve.setGame(puzzle[idx].toLowerCase());
-    console.time("sw");
+//    console.time("sw");
 	populateDOM(idx, solve.searchGame());
-    console.timeEnd("sw", "in searchGame()");
+//    console.timeEnd("sw", "in searchGame()");
     }
     //let stop = Date.now();	// profiling
     //console.log("callbackSolve 9 ", stop - start);	// profiling
@@ -215,16 +215,15 @@ function bodyLoaded() {
 	populateGrid(idx, puzzle[idx]);
     }
 
-    // Relenquish back to render engine to update HTML page promptly now that the puzzle
-    // grids are populated.  Do this before the more involved computation of
-    // decompressing the dictionary and solving the puzzles.
+    // Solve and populate the 1st puzzle now, then relenquish back
+    // to render engine to update HTML page promptly now that the puzzle
+    // grids are populated.  Do this before the additional processing
+    // of solving and populating the remaining puzzles.
     //
-    if (0) {
-	setTimeout(callbackSolve, 1, puzzle);
-    }
-    else {
-	callbackSolve(puzzle);
-    }
+    solve = mk_solver();
+    solve.setGame(puzzle[1].toLowerCase());
+    populateDOM(1, solve.searchGame());
+    setTimeout(callbackSolve, 5, puzzle);
 }
 </script>
 </body>
